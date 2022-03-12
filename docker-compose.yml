@@ -1,0 +1,45 @@
+version: '3.5'
+
+services:
+  traefik:
+    image: traefik
+    volumes:
+      - ./dyn.yml:/etc/traefik/dyn.yml
+      - ./config.yml:/etc/traefik/traefik.yml
+      - ./ssl:/etc/traefik/certs
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    labels:
+      - "traefik.http.routers.traefik.rule=Host(`traefik.zsmartex.tech`)"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+
+  adminer:
+    image: adminer
+    restart: always
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.http.routers.myname.rule=Host(`adminer.zsmartex.tech`) && PathPrefix(`/`)"
+      - "traefik.http.services.myname.loadbalancer.server.port=8080"
+      - "traefik.enable=true"
+      - "traefik.http.routers.myname.entrypoints=websecure"
+      - "traefik.http.routers.myname.tls=true"
+
+  nginx:
+    image: nginx
+    volumes:
+      - ./html/:/usr/share/nginx/html
+    depends_on:
+      - traefik
+    labels:
+      - "traefik.http.routers.nginx.rule=Host(`nginx.zsmartex.tech`) && PathPrefix(`/`)"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls=true"
